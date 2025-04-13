@@ -26,3 +26,55 @@ def log(thread_type, id, target, msg):
         print(f"{thread_type} {id} [{target}]: {msg}")
     else:
         print(f"{thread_type} {id} []: {msg}")
+
+class Teller(threading.Thread):
+    def __init__(self, id):
+        super().__init__()
+        self.id = id
+
+    def run(self):
+        log("Teller", self.id, None, "ready to serve")
+        log("Teller", self.id, None, "waiting for a customer")
+        bank_open.wait()
+
+        while True:
+            teller_ready[self.id].acquire()
+
+            with queue_lock:
+                if not customer_queue:
+                    break
+                cust_id, transaction = customer_queue.pop(0)
+                teller_customer_map[self.id] = (cust_id, transaction)
+                teller_available[self.id] = False
+
+            log("Customer", cust_id, f"Teller {self.id}", "selects teller")
+            log("Customer", cust_id, f"Teller {self.id}", "introduces itself")
+            log("Teller", self.id, f"Customer {cust_id}", "serving a customer")
+            log("Teller", self.id, f"Customer {cust_id}", "asks for transaction")
+            customer_ready[cust_id].release()
+            transaction_ready[cust_id].acquire()
+
+            if transaction == "withdrawal":
+                log("Teller", self.id, f"Customer {cust_id}", "handling withdrawal transaction")
+                log("Teller", self.id, None, "going to the manager")
+                with manager_semaphore:
+                    log("Teller", self.id, None, "getting manager's permission")
+                    time.sleep(random.uniform(0.005, 0.03))
+                    log("Teller", self.id, None, "got manager's permission")
+            else:
+                log("Teller", self.id, f"Customer {cust_id}", "handling deposit transaction")
+
+            log("Teller", self.id, f"Customer {cust_id}", "going to safe")
+            with safe_semaphore:
+                log("Teller", self.id, None, "enter safe")
+                time.sleep(random.uniform(0.01, 0.05))
+                log("Teller", self.id, None, "leaving safe")
+
+            log("Teller", self.id, f"Customer {cust_id}", f"finishes {transaction} transaction.")
+            log("Teller", self.id, f"Customer {cust_id}", "wait for customer to leave.")
+            transaction_done[cust_id].release()
+            customer_left[cust_id].acquire()
+            teller_available[self.id] = True
+            log("Teller", self.id, None, "waiting for a customer")
+
+        log("Teller", self.id, None, "leaving for the day")
