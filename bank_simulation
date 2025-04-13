@@ -78,3 +78,44 @@ class Teller(threading.Thread):
             log("Teller", self.id, None, "waiting for a customer")
 
         log("Teller", self.id, None, "leaving for the day")
+
+class Customer(threading.Thread):
+    def __init__(self, id):
+        super().__init__()
+        self.id = id
+        self.transaction = random.choice(["deposit", "withdrawal"])
+
+    def run(self):
+        log("Customer", self.id, None, f"wants to perform a {self.transaction} transaction")
+        time.sleep(random.uniform(0.0, 0.1))
+
+        log("Customer", self.id, None, "going to bank.")
+        door_semaphore.acquire()
+        log("Customer", self.id, None, "entering bank.")
+        log("Customer", self.id, None, "getting in line.")
+
+        with queue_lock:
+            customer_queue.append((self.id, self.transaction))
+            for i in range(NUM_TELLERS):
+                if teller_available[i]:
+                    teller_ready[i].release()
+                    teller_available[i] = False
+                    break
+
+        log("Customer", self.id, None, "selecting a teller.")
+        customer_ready[self.id].acquire()
+        log("Customer", self.id, f"Teller {self.find_teller()}", f"asks for {self.transaction} transaction")
+        transaction_ready[self.id].release()
+        transaction_done[self.id].acquire()
+
+        log("Customer", self.id, f"Teller {self.find_teller()}", "leaves teller")
+        log("Customer", self.id, None, "goes to door")
+        log("Customer", self.id, None, "leaves the bank")
+        customer_left[self.id].release()
+        door_semaphore.release()
+
+    def find_teller(self):
+        for i, pair in enumerate(teller_customer_map):
+            if pair is not None and pair[0] == self.id:
+                return i
+        return "?"
