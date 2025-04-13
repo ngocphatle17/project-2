@@ -4,3 +4,14 @@ import random
 
 NUM_TELLERS = 3
 NUM_CUSTOMERS = 50
+
+bank_open = threading.Event()
+safe_semaphore = threading.Semaphore(2)
+manager_semaphore = threading.Semaphore(1)
+door_semaphore = threading.Semaphore(2)
+
+teller_ready = [threading.Semaphore(0) for _ in range(NUM_TELLERS)]
+customer_ready = [threading.Semaphore(0) for _ in range(NUM_CUSTOMERS)]
+transaction_ready = [threading.Semaphore(0) for _ in range(NUM_CUSTOMERS)]
+transaction_done = [threading.Semaphore(0) for _ in range(NUM_CUSTOMERS)]
+customer_left = [threading.Semaphore(0) for _ in range(NUM_CUSTOMERS)]
