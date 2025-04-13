@@ -119,3 +119,28 @@ class Customer(threading.Thread):
             if pair is not None and pair[0] == self.id:
                 return i
         return "?"
+
+def run_simulation():
+    tellers = [Teller(i) for i in range(NUM_TELLERS)]
+    for t in tellers:
+        t.start()
+
+    time.sleep(0.5)
+    bank_open.set()
+
+    customers = [Customer(i) for i in range(NUM_CUSTOMERS)]
+    for c in customers:
+        c.start()
+    for c in customers:
+        c.join()
+
+    with queue_lock:
+        for i in range(NUM_TELLERS):
+            teller_ready[i].release()
+
+    for t in tellers:
+        t.join()
+
+    print("The bank closes for the day.")
+
+run_simulation()
