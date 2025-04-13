@@ -15,3 +15,14 @@ customer_ready = [threading.Semaphore(0) for _ in range(NUM_CUSTOMERS)]
 transaction_ready = [threading.Semaphore(0) for _ in range(NUM_CUSTOMERS)]
 transaction_done = [threading.Semaphore(0) for _ in range(NUM_CUSTOMERS)]
 customer_left = [threading.Semaphore(0) for _ in range(NUM_CUSTOMERS)]
+
+customer_queue = []
+queue_lock = threading.Lock()
+teller_available = [True] * NUM_TELLERS
+teller_customer_map = [None] * NUM_TELLERS
+
+def log(thread_type, id, target, msg):
+    if target is not None:
+        print(f"{thread_type} {id} [{target}]: {msg}")
+    else:
+        print(f"{thread_type} {id} []: {msg}")
